@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#f2eddf">
+  <meta name="description" content="集中预览万物图鉴待审核的物种条目，最终在 GitHub 完成审核和合并。">
+  <title>投稿审核预览 · 万物图鉴</title>
+  <link rel="stylesheet" href="./style.css">
+  <script type="module" src="./app.js"></script>
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand"><span class="brand-mark" aria-hidden="true">✳</span><span>BIOTAPEDIA <small>审核预览</small></span></div>
+    <a id="repository-link" class="repository-link" href="https://github.com/biotapedia/biopedia-data/pulls" target="_blank" rel="noopener noreferrer">在 GitHub 查看全部 PR ↗</a>
+  </header>
+  <div class="intro">
+    <p class="kicker">EDITORIAL DESK / 投稿审核</p>
+    <h1>把条目作为图鉴来读。</h1>
+    <p>这里集中预览待审 PR 的图片、资料与正文。审核意见和最终合并仍在 GitHub 完成。</p>
+  </div>
+  <main class="layout">
+    <aside class="queue" aria-labelledby="queue-title">
+      <div class="panel-heading"><div><p class="kicker">OPEN PULL REQUESTS</p><h2 id="queue-title">待审列表 <span id="queue-count"></span></h2></div><button id="refresh" type="button" class="icon-button" aria-label="刷新待审列表" title="刷新">↻</button></div>
+      <p id="queue-status" class="queue-status" role="status">正在读取待审 PR…</p>
+      <div id="pull-list" class="pull-list"></div>
+      <button id="load-more" class="load-more" type="button" hidden>加载更多 PR ↓</button>
+    </aside>
+    <section class="review" aria-labelledby="review-title">
+      <div id="review-empty" class="review-empty"><span aria-hidden="true">✳</span><h2 id="review-title">选择一个 PR 开始预览</h2><p>这里会展示该 PR 修改的图鉴条目。</p></div>
+      <div id="review-content" hidden>
+        <div class="review-head"><div><p class="kicker" id="review-label"></p><h2 id="review-name"></h2><p id="review-meta"></p></div><a id="open-pull" class="primary-link" target="_blank" rel="noopener noreferrer">前往 GitHub 审核与合并 ↗</a></div>
+        <p id="review-status" class="review-status" role="status"></p>
+        <nav id="entry-nav" class="entry-nav" aria-label="本次变更的条目"></nav>
+        <div id="entries"></div>
+        <details id="pull-notes" class="pull-notes"><summary>PR 说明与人工核实清单</summary><div id="pull-notes-body" class="prose"></div></details>
+      </div>
+    </section>
+  </main>
+  <footer>BIOTAPEDIA / 万物图鉴 · 只读预览 · 审核与合并由 GitHub 处理</footer>
+</body>
+</html>
