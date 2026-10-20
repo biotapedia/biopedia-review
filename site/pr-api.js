@@ -36,6 +36,11 @@ export async function loadPulls(repository, page = 1) {
   return githubGet(repository, `/pulls?state=open&sort=updated&direction=desc&per_page=100&page=${page}`);
 }
 
+export async function loadPull(repository, number) {
+  if (!Number.isSafeInteger(number) || number < 1) throw new Error('PR 编号无效');
+  return githubGet(repository, `/pulls/${number}`);
+}
+
 export async function loadPullFiles(repository, number) {
   const files = [];
   for (let page = 1; page <= 10; page++) {

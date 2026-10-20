@@ -1,9 +1,9 @@
 import { renderMarkdown } from './markdown.js';
 import { conservationLabel, rankLabel, safeHttps, toxicityLabel } from './taxonomy.js';
-import { isTaxonFile, loadPullFiles, loadPulls, loadTaxon, repositoryFromConfig } from './pr-api.js';
+import { isTaxonFile, loadPull, loadPullFiles, loadPulls, loadTaxon, repositoryFromConfig } from './pr-api.js';
 
 const $ = id => document.getElementById(id);
-const state = { repository: '', pulls: [], page: 0, selected: null, selectionVersion: 0, busy: false };
+const state = { repository: '', pulls: [], page: 0, hasMore: false, selected: null, selectionVersion: 0, busy: false };
 
 function element(tag, className = '', text = '') {
   const node = document.createElement(tag);
@@ -22,7 +22,7 @@ function setReviewStatus(message) { $('review-status').textContent = message; }
 function renderPullList() {
   const list = $('pull-list');
   list.replaceChildren();
-  $('queue-count').textContent = state.pulls.length ? `(${state.pulls.length}${state.pulls.length === state.page * 100 ? '+' : ''})` : '';
+  $('queue-count').textContent = state.pulls.length ? `(${state.pulls.length}${state.hasMore ? '+' : ''})` : '';
   for (const pull of state.pulls) {
     const button = element('button', 'pull-item');
     button.type = 'button';
@@ -33,7 +33,7 @@ function renderPullList() {
     button.addEventListener('click', () => selectPull(pull));
     list.append(button);
   }
-  $('load-more').hidden = state.pulls.length === 0 || state.pulls.length !== state.page * 100;
+  $('load-more').hidden = !state.hasMore;
 }
 
 async function fetchPullPage(reset = false) {
@@ -47,11 +47,17 @@ async function fetchPullPage(reset = false) {
     const incoming = await loadPulls(state.repository, page);
     state.pulls = reset ? incoming : [...state.pulls, ...incoming];
     state.page = page;
+    state.hasMore = incoming.length === 100;
     renderPullList();
     setQueueStatus(state.pulls.length ? `已显示 ${state.pulls.length} 个待审 PR` : '目前没有待审 PR。');
     if (reset) {
       const requested = Number(new URL(location.href).searchParams.get('pr'));
-      const target = state.pulls.find(pull => pull.number === requested) || state.pulls[0];
+      let target = state.pulls.find(pull => pull.number === requested);
+      if (!target && requested > 0) {
+        try { target = await loadPull(state.repository, requested); }
+        catch { setQueueStatus(`无法读取 PR #${requested}；${state.pulls.length ? '已显示当前待审列表。' : '请在 GitHub 查看。'}`); }
+      }
+      target ||= state.pulls[0];
       if (target) selectPull(target);
       else clearReview();
     }
@@ -140,7 +146,7 @@ function renderEntry(result, index) {
 async function loadEntry(file, pull) {
   try {
     const proposed = file.status === 'removed' ? null : await loadTaxon(state.repository, file.filename, pull.head.sha);
-    const original = file.status === 'added' ? null : await loadTaxon(state.repository, file.filename, pull.base.sha);
+    const original = file.status === 'added' ? null : await loadTaxon(state.repository, file.previous_filename || file.filename, pull.base.sha);
     return { file, proposed, original };
   } catch (error) {
     return { file, error };
@@ -156,10 +162,11 @@ async function selectPull(pull) {
   history.replaceState(null, '', url);
   $('review-empty').hidden = true;
   $('review-content').hidden = false;
-  $('review-label').textContent = `PULL REQUEST #${pull.number}${pull.draft ? ' / 草稿' : ''}`;
+  $('review-label').textContent = `PULL REQUEST #${pull.number}${pull.merged_at ? ' / 已合并' : pull.state === 'closed' ? ' / 已关闭' : pull.draft ? ' / 草稿' : ''}`;
   $('review-name').textContent = pull.title;
   $('review-meta').textContent = `由 ${pull.user?.login || '投稿者'} 提交 · 目标分支 ${pull.base?.ref || 'main'}`;
   $('open-pull').href = githubPullUrl(pull.number);
+  $('open-pull').textContent = pull.state === 'closed' ? '在 GitHub 查看 PR ↗' : '前往 GitHub 审核与合并 ↗';
   $('entries').replaceChildren();
   $('entry-nav').replaceChildren();
   $('pull-notes').hidden = !pull.body;
